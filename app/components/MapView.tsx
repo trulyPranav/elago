@@ -1,4 +1,3 @@
-'use client';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Property, TYPE_COLORS } from './data';

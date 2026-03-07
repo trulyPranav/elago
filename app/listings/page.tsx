@@ -1,23 +1,15 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Search, Filter, Grid, List, Phone, TrendingUp } from 'lucide-react';
-import ElagoLogo from '../components/ElagoLogo';
-import { PROPERTIES, formatPrice, TYPE_COLORS, STATUS_COLORS } from '../components/data';
-
-const STATUS_LIGHT: Record<string, string> = {
-  'New Launch':'#f15a29','Under Construction':'#F0B429','Ready':'#10b981','Resale':'#8B5CF6'
-};
+import { Search, Grid, List, Phone, TrendingUp } from 'lucide-react';
+import SubPageHeader from '../components/SubPageHeader';
+import { PROPERTIES, formatPrice, TYPE_COLORS, STATUS_LIGHT } from '../components/data';
 
 export default function ListingsPage() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [view, setView] = useState<'grid'|'list'>('grid');
   const [typeFilter, setTypeFilter] = useState('All');
-
-  useEffect(() => {
-    if (!localStorage.getItem('elago_user')) router.replace('/login');
-  }, []);
 
   const filtered = PROPERTIES.filter(p =>
     (typeFilter === 'All' || p.type === typeFilter) &&
@@ -26,24 +18,22 @@ export default function ListingsPage() {
 
   return (
     <div className="min-h-screen bg-brand-light" style={{ overflowY:'auto', height:'100vh' }}>
-      <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-3 bg-white border-b border-brand-border card-shadow">
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.push('/')} className="flex items-center gap-1.5 text-brand-muted hover:text-brand-text transition-colors text-sm font-body">
-            <ArrowLeft size={15}/> Map View
-          </button>
-          <div className="h-4 w-px bg-brand-border"/>
-          <ElagoLogo size="sm"/>
-        </div>
-        <div className="flex items-center gap-2 bg-brand-light border border-brand-border rounded-xl px-3 py-2 w-64">
-          <Search size={13} className="text-brand-muted"/>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects or builders…"
-            className="bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none font-body w-full"/>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setView('grid')} className={`p-2 rounded-lg border transition-colors ${view==='grid' ? 'bg-brand-navy text-white border-brand-navy' : 'border-brand-border text-brand-muted hover:bg-brand-hover'}`}><Grid size={14}/></button>
-          <button onClick={() => setView('list')} className={`p-2 rounded-lg border transition-colors ${view==='list' ? 'bg-brand-navy text-white border-brand-navy' : 'border-brand-border text-brand-muted hover:bg-brand-hover'}`}><List size={14}/></button>
-        </div>
-      </header>
+      <SubPageHeader
+        backLabel="Map View"
+        center={
+          <div className="flex items-center gap-2 bg-brand-light border border-brand-border rounded-xl px-3 py-2 w-64">
+            <Search size={13} className="text-brand-muted"/>
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects or builders…"
+              className="bg-transparent text-sm text-brand-text placeholder:text-brand-muted focus:outline-none font-body w-full"/>
+          </div>
+        }
+        right={
+          <div className="flex items-center gap-2">
+            <button onClick={() => setView('grid')} className={`p-2 rounded-lg border transition-colors ${view==='grid' ? 'bg-brand-navy text-white border-brand-navy' : 'border-brand-border text-brand-muted hover:bg-brand-hover'}`}><Grid size={14}/></button>
+            <button onClick={() => setView('list')} className={`p-2 rounded-lg border transition-colors ${view==='list' ? 'bg-brand-navy text-white border-brand-navy' : 'border-brand-border text-brand-muted hover:bg-brand-hover'}`}><List size={14}/></button>
+          </div>
+        }
+      />
 
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex items-center justify-between mb-5">

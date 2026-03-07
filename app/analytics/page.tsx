@@ -1,13 +1,11 @@
 'use client';
-import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, TrendingUp, Building2, MapPin, BarChart2, Users, DollarSign, Home } from 'lucide-react';
-import ElagoLogo from '../components/ElagoLogo';
+import { TrendingUp, Building2, MapPin, BarChart2, Home } from 'lucide-react';
+import SubPageHeader from '../components/SubPageHeader';
 import { PROPERTIES, formatPrice } from '../components/data';
 
 export default function AnalyticsPage() {
   const router = useRouter();
-  useEffect(() => { if (!localStorage.getItem('elago_user')) router.replace('/login'); }, []);
 
   const totalValue = PROPERTIES.reduce((s, p) => s + p.priceFrom, 0);
   const byType = Object.entries(PROPERTIES.reduce((acc, p) => { acc[p.type] = (acc[p.type]||0)+1; return acc; }, {} as Record<string,number>));
@@ -19,15 +17,10 @@ export default function AnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-brand-light" style={{ overflowY:'auto', height:'100vh' }}>
-      <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-3 bg-white border-b border-brand-border card-shadow">
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.push('/')} className="flex items-center gap-1.5 text-brand-muted hover:text-brand-text transition-colors text-sm font-body"><ArrowLeft size={15}/> Map View</button>
-          <div className="h-4 w-px bg-brand-border"/>
-          <ElagoLogo size="sm"/>
-        </div>
-        <h1 className="font-body text-sm font-bold text-brand-navy uppercase tracking-wider">Analytics Dashboard</h1>
-        <div className="w-32"/>
-      </header>
+      <SubPageHeader
+        backLabel="Map View"
+        center={<h1 className="font-body text-sm font-bold text-brand-navy uppercase tracking-wider">Analytics Dashboard</h1>}
+      />
 
       <div className="max-w-6xl mx-auto px-6 py-6">
         {/* KPIs */}

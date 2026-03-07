@@ -12,8 +12,10 @@ export interface PriceChartRow {
 export interface FloorAvailability {
   floor: number;
   label: string;
+  unitTypes?: string;
   available: number;
   total: number;
+  pricePerSqft?: number;
   status: 'available' | 'limited' | 'sold';
 }
 
@@ -42,6 +44,7 @@ export interface Property {
   priceChart?: PriceChartRow[];
   floorAvailability?: FloorAvailability[];
   builderDocLink?: string;
+  priceChartUrl?: string;
 }
 
 export const PROPERTIES: Property[] = [
@@ -76,18 +79,18 @@ export const PROPERTIES: Property[] = [
       { floors: '16 – 20', unitType: '3 BHK', area: 1650, basePricePerSqft: 8800, totalPrice: 14520000 },
     ],
     floorAvailability: [
-      { floor: 1,  label: 'Floor 1',  available: 2, total: 4, status: 'available' },
-      { floor: 2,  label: 'Floor 2',  available: 0, total: 4, status: 'sold'      },
-      { floor: 3,  label: 'Floor 3',  available: 1, total: 4, status: 'limited'   },
-      { floor: 4,  label: 'Floor 4',  available: 3, total: 4, status: 'available' },
-      { floor: 5,  label: 'Floor 5',  available: 0, total: 4, status: 'sold'      },
-      { floor: 6,  label: 'Floor 6',  available: 2, total: 4, status: 'available' },
-      { floor: 7,  label: 'Floor 7',  available: 4, total: 4, status: 'available' },
-      { floor: 8,  label: 'Floor 8',  available: 1, total: 4, status: 'limited'   },
-      { floor: 9,  label: 'Floor 9',  available: 0, total: 4, status: 'sold'      },
-      { floor: 10, label: 'Floor 10', available: 2, total: 4, status: 'available' },
-      { floor: 11, label: 'Floor 11', available: 3, total: 4, status: 'available' },
-      { floor: 12, label: 'Floor 12', available: 4, total: 4, status: 'available' },
+      { floor: 1,  label: 'Floor 1',  unitTypes: '2 BHK',    available: 2, total: 4, pricePerSqft: 7200, status: 'available' },
+      { floor: 2,  label: 'Floor 2',  unitTypes: '2,3 BHK',  available: 0, total: 4, pricePerSqft: 7200, status: 'sold'      },
+      { floor: 3,  label: 'Floor 3',  unitTypes: '3 BHK',    available: 1, total: 4, pricePerSqft: 7200, status: 'limited'   },
+      { floor: 4,  label: 'Floor 4',  unitTypes: '2 BHK',    available: 3, total: 4, pricePerSqft: 7500, status: 'available' },
+      { floor: 5,  label: 'Floor 5',  unitTypes: '2,3 BHK',  available: 0, total: 4, pricePerSqft: 7500, status: 'sold'      },
+      { floor: 6,  label: 'Floor 6',  unitTypes: '3 BHK',    available: 2, total: 4, pricePerSqft: 7500, status: 'available' },
+      { floor: 7,  label: 'Floor 7',  unitTypes: '3 BHK',    available: 4, total: 4, pricePerSqft: 7800, status: 'available' },
+      { floor: 8,  label: 'Floor 8',  unitTypes: '3 BHK',    available: 1, total: 4, pricePerSqft: 7800, status: 'limited'   },
+      { floor: 9,  label: 'Floor 9',  unitTypes: '3 BHK',    available: 0, total: 4, pricePerSqft: 8000, status: 'sold'      },
+      { floor: 10, label: 'Floor 10', unitTypes: '3 BHK',    available: 2, total: 4, pricePerSqft: 8000, status: 'available' },
+      { floor: 11, label: 'Floor 11', unitTypes: '3 BHK',    available: 3, total: 4, pricePerSqft: 8500, status: 'available' },
+      { floor: 12, label: 'Floor 12', unitTypes: '3 BHK',    available: 4, total: 4, pricePerSqft: 8500, status: 'available' },
     ],
     builderDocLink: 'https://www.prestigeconstructions.com/brochures/lakeside-habitat.pdf',
   },
@@ -223,6 +226,13 @@ export const STATUS_COLORS: Record<PropertyStatus, string> = {
   'Resale':              '#7B3FA8',
 };
 
+export const STATUS_LIGHT: Record<PropertyStatus, string> = {
+  'New Launch':         '#f15a29',
+  'Under Construction': '#F0B429',
+  'Ready':              '#10b981',
+  'Resale':             '#8B5CF6',
+};
+
 export function formatPrice(price: number): string {
   if (price >= 10000000) return `₹${(price / 10000000).toFixed(2)} Cr`;
   if (price >= 100000)   return `₹${(price / 100000).toFixed(0)} L`;
@@ -255,3 +265,9 @@ export function getNearbyFacilities(property: Property) {
   }));
 }
 export const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+/** Parses a possession string like "Mar 2026" or "Jun 2027" and returns the year, or null for "Ready" etc. */
+export function getPossessionYear(possession: string): number | null {
+  const match = possession.match(/(\d{4})/);
+  return match ? parseInt(match[1], 10) : null;
+}

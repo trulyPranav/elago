@@ -1,21 +1,9 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Phone, Mail, MessageCircle, Download, ExternalLink, BedDouble, Square, Calendar, TrendingUp, MapPin, Building2, ChevronDown, ChevronUp, FileText, BarChart2, CheckCircle2, XCircle, AlertCircle, Share2 } from 'lucide-react';
-import { PROPERTIES, formatPrice, STATUS_COLORS, TYPE_COLORS } from '../../components/data';
-import ElagoLogo from '../../components/ElagoLogo';
-
-const STATUS_LIGHT: Record<string, string> = {
-  'New Launch':'#f15a29','Under Construction':'#F0B429','Ready':'#10b981','Resale':'#8B5CF6'
-};
-
-const statusIcon = (s: string) => s === 'Available'
-  ? <CheckCircle2 size={13} className="text-green-500"/>
-  : s === 'Limited'
-  ? <AlertCircle size={13} className="text-yellow-500"/>
-  : <XCircle size={13} className="text-red-500"/>;
-
-const statusTextColor = (s: string) => s === 'Available' ? 'text-green-600' : s === 'Limited' ? 'text-yellow-600' : 'text-red-500';
+import { Phone, Mail, MessageCircle, Download, ExternalLink, BedDouble, Square, Calendar, TrendingUp, MapPin, Building2, ChevronDown, ChevronUp, FileText, BarChart2, CheckCircle2, XCircle, AlertCircle, Share2 } from 'lucide-react';
+import { PROPERTIES, formatPrice, STATUS_LIGHT, TYPE_COLORS } from '../../components/data';
+import SubPageHeader from '../../components/SubPageHeader';
 
 export default function PropertyDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -24,9 +12,11 @@ export default function PropertyDetailPage() {
   const [showAllFloors, setShowAllFloors] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview'|'floors'|'docs'>('overview');
 
-  useEffect(() => {
-    if (!localStorage.getItem('elago_user')) router.replace('/login');
-  }, []);
+  const FLOOR_STATUS_DISPLAY = {
+    available: { label: 'Available', icon: <CheckCircle2 size={13} className="text-green-500"/>, color: 'text-green-600' },
+    limited:   { label: 'Limited',   icon: <AlertCircle  size={13} className="text-yellow-500"/>, color: 'text-yellow-600' },
+    sold:      { label: 'Sold Out',  icon: <XCircle      size={13} className="text-red-500"/>,    color: 'text-red-500'   },
+  } as const;
 
   const property = PROPERTIES.find(p => p.id === id);
 
@@ -39,8 +29,8 @@ export default function PropertyDetailPage() {
     </div>
   );
 
-  const images = property.images || [property.image];
-  const floors = property.floorAvailability || [];
+  const images = [property.image];
+  const floors = property.floorAvailability ?? [];
   const visibleFloors = showAllFloors ? floors : floors.slice(0, 4);
   const availableUnits = floors.reduce((s, f) => s + f.available, 0);
   const totalUnits = floors.reduce((s, f) => s + f.total, 0);
@@ -48,26 +38,19 @@ export default function PropertyDetailPage() {
   return (
     <div className="min-h-screen bg-brand-light" style={{ overflowY: 'auto', height: '100vh' }}>
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-3 bg-white border-b border-brand-border card-shadow">
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.push('/')} className="flex items-center gap-1.5 text-brand-muted hover:text-brand-text transition-colors text-sm font-body font-medium">
-            <ArrowLeft size={15}/> Back
-          </button>
-          <div className="h-4 w-px bg-brand-border"/>
-          <ElagoLogo size="sm"/>
-          <div className="h-4 w-px bg-brand-border"/>
-          <span className="text-xs text-brand-muted font-body truncate max-w-48">{property.name}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-brand-border text-brand-muted text-xs font-body hover:bg-brand-hover hover:text-brand-text transition-colors">
-            <Share2 size={12}/> Share
-          </button>
-          <a href={`tel:${property.phone}`} className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-brand-orange text-white text-xs font-body font-semibold hover:bg-orange-600 transition-colors">
-            <Phone size={12}/> Call Now
-          </a>
-        </div>
-      </header>
+      <SubPageHeader
+        subtitle={property.name}
+        right={
+          <div className="flex items-center gap-2">
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-brand-border text-brand-muted text-xs font-body hover:bg-brand-hover hover:text-brand-text transition-colors">
+              <Share2 size={12}/> Share
+            </button>
+            <a href={`tel:${property.phone}`} className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-brand-orange text-white text-xs font-body font-semibold hover:bg-orange-600 transition-colors">
+              <Phone size={12}/> Call Now
+            </a>
+          </div>
+        }
+      />
 
       {/* Hero image banner */}
       <div className="relative h-72 overflow-hidden">
@@ -246,14 +229,14 @@ export default function PropertyDetailPage() {
                   </div>
                   {visibleFloors.map((floor, i) => (
                     <div key={i}
-                      className={`grid grid-cols-6 px-5 py-3.5 border-b border-brand-border/40 last:border-0 hover:bg-brand-hover transition-colors ${floor.status === 'Sold Out' ? 'opacity-50' : ''}`}>
+                      className={`grid grid-cols-6 px-5 py-3.5 border-b border-brand-border/40 last:border-0 hover:bg-brand-hover transition-colors ${floor.status === 'sold' ? 'opacity-50' : ''}`}>
                       <div className="text-sm text-brand-navy font-body font-semibold">{floor.label}</div>
-                      <div className="text-sm text-brand-muted font-body">{floor.unitTypes}</div>
+                      <div className="text-sm text-brand-muted font-body">{floor.unitTypes ?? '—'}</div>
                       <div className="text-sm text-brand-navy font-mono font-medium">{floor.total}</div>
                       <div className={`text-sm font-mono font-bold ${floor.available > 0 ? 'text-green-600' : 'text-red-500'}`}>{floor.available}</div>
-                      <div className="text-sm text-brand-orange font-mono font-semibold">₹{floor.pricePerSqft.toLocaleString()}</div>
-                      <div className={`flex items-center gap-1.5 text-xs font-body font-semibold ${statusTextColor(floor.status)}`}>
-                        {statusIcon(floor.status)} {floor.status}
+                      <div className="text-sm text-brand-orange font-mono font-semibold">{floor.pricePerSqft ? `₹${floor.pricePerSqft.toLocaleString()}` : '—'}</div>
+                      <div className={`flex items-center gap-1.5 text-xs font-body font-semibold ${FLOOR_STATUS_DISPLAY[floor.status].color}`}>
+                        {FLOOR_STATUS_DISPLAY[floor.status].icon} {FLOOR_STATUS_DISPLAY[floor.status].label}
                       </div>
                     </div>
                   ))}
@@ -305,8 +288,8 @@ export default function PropertyDetailPage() {
                 <div>
                   <h3 className="font-body text-base font-bold text-brand-navy mb-1">Builder Brochure</h3>
                   <p className="text-xs text-brand-muted font-body mb-4">Full specification document from the developer</p>
-                  {property.builderDocUrl ? (
-                    <a href={property.builderDocUrl} target="_blank" rel="noopener noreferrer"
+                  {property.builderDocLink ? (
+                    <a href={property.builderDocLink} target="_blank" rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-navy text-white text-sm font-body font-semibold hover:bg-brand-navy2 transition-colors">
                       <ExternalLink size={14}/> Open Document
                     </a>

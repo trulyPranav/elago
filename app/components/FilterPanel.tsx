@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { SlidersHorizontal, MapPin, ChevronDown, X, TrendingUp, Train } from 'lucide-react';
-import { PropertyType, PropertyStatus, TYPE_COLORS, MONTHS } from './data';
+import { PropertyType, PropertyStatus, MONTHS } from './data';
 
 export interface Filters {
   types: PropertyType[];
@@ -26,7 +26,6 @@ interface Props {
 const ALL_TYPES:    PropertyType[]   = ['Flat','Villa','Commercial','Plot'];
 const ALL_STATUSES: PropertyStatus[] = ['New Launch','Under Construction','Ready','Resale'];
 const ALL_BUILDERS = ['Prestige Group','Sobha Developers','Embassy Group','Brigade Group','Adarsh Developers','Mahindra Lifespace'];
-const YEARS = [2024,2025,2026,2027,2028];
 
 const STATUS_COLORS_MAP: Record<PropertyStatus, string> = {
   'New Launch': '#f15a29', 'Under Construction': '#F0B429', 'Ready': '#10b981', 'Resale': '#8B5CF6'

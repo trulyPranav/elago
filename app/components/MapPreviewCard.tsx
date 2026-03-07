@@ -1,10 +1,5 @@
-'use client';
 import { X, Phone, Mail, ArrowRight, BedDouble, Square, Calendar, TrendingUp } from 'lucide-react';
-import { Property, TYPE_COLORS, STATUS_COLORS, formatPrice } from './data';
-
-const STATUS_LIGHT: Record<string, string> = {
-  'New Launch':'#f15a29','Under Construction':'#F0B429','Ready':'#10b981','Resale':'#8B5CF6'
-};
+import { Property, TYPE_COLORS, STATUS_LIGHT, formatPrice } from './data';
 
 export default function MapPreviewCard({ property, onClose, onOpenDetails }: {
   property: Property; onClose: ()=>void; onOpenDetails: ()=>void;
