@@ -1,0 +1,53 @@
+# Build and compilation
+target/
+build/
+dist/
+*.class
+*.jar
+*.war
+*.ear
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+*.iml
+
+# Maven
+*.pom.xml.tag
+*.pom.xml.releaseBackup
+pom.xml.releaseBackup
+
+# Gradle
+.gradle/
+gradle/
+
+# Dependencies
+node_modules/
+*.egg-info/
+.Python
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Local environment
+.env
+.env.local
