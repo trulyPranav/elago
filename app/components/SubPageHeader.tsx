@@ -7,6 +7,8 @@ import ElagoLogo from './ElagoLogo';
 interface SubPageHeaderProps {
   /** Label for the back button. Defaults to "Back". */
   backLabel?: string;
+  /** Override the back navigation (defaults to router.back()). */
+  onBack?: () => void;
   /** Optional text shown after the logo divider (e.g. property name). */
   subtitle?: string;
   /** Optional center slot (e.g. search input). When provided and no right is given, a spacer is auto-rendered on the right to keep the center visually centered. */
@@ -17,6 +19,7 @@ interface SubPageHeaderProps {
 
 export default function SubPageHeader({
   backLabel = 'Back',
+  onBack,
   subtitle,
   center,
   right,
@@ -27,7 +30,7 @@ export default function SubPageHeader({
     <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-3 bg-white border-b border-brand-border card-shadow">
       <div className="flex items-center gap-4">
         <button
-          onClick={() => router.back()}
+          onClick={() => onBack ? onBack() : router.back()}
           className="flex items-center gap-1.5 text-brand-muted hover:text-brand-text text-sm font-body font-medium transition-colors"
         >
           <ArrowLeft size={15} /> {backLabel}

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Search, ChevronDown, Map, BarChart2, List } from 'lucide-react';
+import { Search, ChevronDown, Map, BarChart2, List, Settings2 } from 'lucide-react';
 import ElagoLogo from './ElagoLogo';
 import { DEFAULT_USER } from '../lib/user';
 
@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { label: 'Map View',  href: '/',          icon: Map },
   { label: 'Listings',  href: '/listings',  icon: List },
   { label: 'Analytics', href: '/analytics', icon: BarChart2 },
+  { label: 'Manage',    href: '/manage',    icon: Settings2 },
 ] as const;
 
 export default function AppHeader() {

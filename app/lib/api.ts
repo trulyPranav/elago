@@ -126,6 +126,72 @@ function buildParams(query: PropertyQuery): string {
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
+/** Shape for create / update requests */
+export interface PropertyPayload {
+  name: string;
+  builder: string;
+  address: string;
+  locality: string;
+  city: string;
+  lat: number;
+  lng: number;
+  type: import('../components/data').PropertyType;
+  status: import('../components/data').PropertyStatus;
+  priceFrom: number;
+  priceTo: number;
+  pricePerSqft?: number;
+  areaSqft: number;
+  bedrooms?: number;
+  possession: string;
+  phone: string;
+  email: string;
+  image: string;
+  description: string;
+  highlights: string[];
+  amenities: string[];
+  highAppreciation: boolean;
+  builderDocLink?: string;
+  priceChartUrl?: string;
+  rental?: { expectedRent?: number; vacancyRate?: number };
+}
+
+// ─── API body transformer ────────────────────────────────────────────────────
+function toApiBody(p: PropertyPayload) {
+  return {
+    name:              p.name,
+    builder:           p.builder,
+    propertyType:      p.type,
+    status:            p.status,
+    high_appreciation: p.highAppreciation,
+    location: {
+      address:     p.address,
+      area:        p.locality,
+      city:        p.city,
+      coordinates: { lat: p.lat, lng: p.lng },
+    },
+    details: {
+      area_sqft:       p.areaSqft,
+      description:     p.description,
+      possession_date: p.possession,
+      bedrooms:        p.bedrooms,
+      amenities:       p.amenities,
+    },
+    pricing: {
+      price_from:     p.priceFrom,
+      price_to:       p.priceTo,
+      price_per_sqft: p.pricePerSqft,
+    },
+    contact: { phone: p.phone, email: p.email },
+    media: {
+      images:       p.image ? [p.image] : [],
+      brochure_url: p.priceChartUrl ?? '',
+    },
+    highlights:       p.highlights,
+    builder_doc_link: p.builderDocLink,
+    rental:           p.rental,
+  };
+}
+
 export const api = {
   /** Paginated, filtered property list */
   getProperties: async (
@@ -157,5 +223,28 @@ export const api = {
   getAnalytics: async (): Promise<AnalyticsData> => {
     const res = await apiFetch<AnalyticsData>('/api/analytics');
     return res.data;
+  },
+
+  /** Create a new property */
+  createProperty: async (payload: PropertyPayload): Promise<Property> => {
+    const res = await apiFetch<Property>('/api/properties', {
+      method: 'POST',
+      body: JSON.stringify(toApiBody(payload)),
+    });
+    return res.data;
+  },
+
+  /** Update an existing property */
+  updateProperty: async (id: string, payload: PropertyPayload): Promise<Property> => {
+    const res = await apiFetch<Property>(`/api/properties/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(toApiBody(payload)),
+    });
+    return res.data;
+  },
+
+  /** Delete a property */
+  deleteProperty: async (id: string): Promise<void> => {
+    await apiFetch<null>(`/api/properties/${id}`, { method: 'DELETE' });
   },
 };
