@@ -7,6 +7,7 @@ interface MapViewProps {
   properties: Property[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  loading?: boolean;
 }
 
 const FACILITY_TYPES: Record<string, { emoji: string; color: string; label: string }> = {
@@ -107,7 +108,7 @@ function getPropertyIcon(type: string, color: string, selected: boolean): string
   return icons[type] || icons['Flat'];
 }
 
-export default function MapView({ properties, selectedId, onSelect }: MapViewProps) {
+export default function MapView({ properties, selectedId, onSelect, loading = false }: MapViewProps) {
   const router = useRouter();
   const mapRef        = useRef<any>(null);
   const containerRef  = useRef<HTMLDivElement>(null);
@@ -250,6 +251,13 @@ export default function MapView({ properties, selectedId, onSelect }: MapViewPro
   return (
     <div className="relative w-full h-full" style={{ minHeight: 0 }}>
       <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
+
+      {/* Thin loading bar while API is fetching */}
+      {loading && ready && (
+        <div className="absolute top-0 left-0 right-0 h-0.5 z-[2000] overflow-hidden">
+          <div className="h-full bg-brand-orange animate-pulse w-full" />
+        </div>
+      )}
 
       {!ready && (
         <div className="absolute inset-0 flex items-center justify-center bg-brand-light z-10">

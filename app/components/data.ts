@@ -19,6 +19,11 @@ export interface FloorAvailability {
   status: 'available' | 'limited' | 'sold';
 }
 
+export interface Rental {
+  expectedRent: number;
+  vacancyRate: number;
+}
+
 export interface Property {
   id: string;
   name: string;
@@ -30,6 +35,7 @@ export interface Property {
   status: PropertyStatus;
   priceFrom: number;
   priceTo: number;
+  pricePerSqft?: number;
   area: string;
   bedrooms?: string;
   possession: string;   // "Mar 2026" format
@@ -40,11 +46,12 @@ export interface Property {
   highlights: string[];
   amenities: string[];
   highAppreciation: boolean;
-  // Optional — only populate for properties that have this data
+  // Optional — only present for full-detail or where data is available
   priceChart?: PriceChartRow[];
   floorAvailability?: FloorAvailability[];
   builderDocLink?: string;
   priceChartUrl?: string;
+  rental?: Rental;
 }
 
 export const PROPERTIES: Property[] = [

@@ -1,16 +1,41 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Phone, Mail, MessageCircle, Download, ExternalLink, BedDouble, Square, Calendar, TrendingUp, MapPin, Building2, ChevronDown, ChevronUp, FileText, BarChart2, CheckCircle2, XCircle, AlertCircle, Share2 } from 'lucide-react';
-import { PROPERTIES, formatPrice, STATUS_LIGHT, TYPE_COLORS } from '../../components/data';
+import { Phone, Mail, MessageCircle, Download, ExternalLink, BedDouble, Square, Calendar, TrendingUp, MapPin, Building2, ChevronDown, ChevronUp, FileText, BarChart2, CheckCircle2, XCircle, AlertCircle, Share2, Loader2 } from 'lucide-react';
+import { formatPrice, STATUS_LIGHT, TYPE_COLORS } from '../../components/data';
+import { api, ApiError, type Property } from '../../lib/api';
 import SubPageHeader from '../../components/SubPageHeader';
 
 export default function PropertyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const [property, setProperty] = useState<Property | null>(null);
+  const [loading, setLoading]   = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [error, setError]       = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState(0);
   const [showAllFloors, setShowAllFloors] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview'|'floors'|'docs'>('overview');
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    setLoading(true);
+    setNotFound(false);
+    setError(null);
+    api.getProperty(id)
+      .then(res => { if (!cancelled) setProperty(res.data); })
+      .catch(err => {
+        if (cancelled) return;
+        if (err instanceof ApiError && (err.statusCode === 404 || err.statusCode === 400)) {
+          setNotFound(true);
+        } else {
+          setError(err instanceof Error ? err.message : 'Failed to load property');
+        }
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [id]);
 
   const FLOOR_STATUS_DISPLAY = {
     available: { label: 'Available', icon: <CheckCircle2 size={13} className="text-green-500"/>, color: 'text-green-600' },
@@ -18,12 +43,38 @@ export default function PropertyDetailPage() {
     sold:      { label: 'Sold Out',  icon: <XCircle      size={13} className="text-red-500"/>,    color: 'text-red-500'   },
   } as const;
 
-  const property = PROPERTIES.find(p => p.id === id);
+  if (loading) return (
+    <div className="min-h-screen bg-brand-light">
+      <SubPageHeader subtitle="Loading…" />
+      {/* Hero skeleton */}
+      <div className="h-72 bg-brand-border/30 animate-pulse"/>
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 space-y-4">
+        <div className="bg-white rounded-2xl border border-brand-border p-6 h-20 animate-pulse"/>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-xl p-4 border border-brand-border h-16 animate-pulse"/>
+          ))}
+        </div>
+        <div className="bg-white rounded-2xl border border-brand-border h-48 animate-pulse"/>
+      </div>
+    </div>
+  );
 
-  if (!property) return (
+  if (notFound) return (
     <div className="min-h-screen bg-brand-light flex items-center justify-center">
       <div className="text-center">
-        <p className="text-brand-muted font-body mb-4">Property not found</p>
+        <p className="text-brand-muted font-body mb-2 font-semibold">Property not found</p>
+        <p className="text-brand-muted/60 font-body text-sm mb-4">This listing may have been removed.</p>
+        <button onClick={() => router.push('/')} className="px-4 py-2 bg-brand-orange text-white rounded-lg text-sm font-body font-semibold">Back to Map</button>
+      </div>
+    </div>
+  );
+
+  if (error || !property) return (
+    <div className="min-h-screen bg-brand-light flex items-center justify-center">
+      <div className="text-center">
+        <p className="text-brand-muted font-body mb-2">{error ?? 'Failed to load property'}</p>
+        <button onClick={() => window.location.reload()} className="text-xs text-brand-orange font-body font-semibold underline mr-4">Retry</button>
         <button onClick={() => router.push('/')} className="px-4 py-2 bg-brand-orange text-white rounded-lg text-sm font-body font-semibold">Back to Map</button>
       </div>
     </div>

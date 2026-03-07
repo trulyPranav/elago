@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SlidersHorizontal, MapPin, ChevronDown, X, TrendingUp, Train } from 'lucide-react';
 import { PropertyType, PropertyStatus, MONTHS } from './data';
+import { api } from '../lib/api';
 
 export interface Filters {
   types: PropertyType[];
@@ -13,6 +14,7 @@ export interface Filters {
   highAppreciation: boolean;
   possessionMonth: number | null;
   possessionYear: number | null;
+  city: string;
 }
 
 interface Props {
@@ -25,7 +27,8 @@ interface Props {
 
 const ALL_TYPES:    PropertyType[]   = ['Flat','Villa','Commercial','Plot'];
 const ALL_STATUSES: PropertyStatus[] = ['New Launch','Under Construction','Ready','Resale'];
-const ALL_BUILDERS = ['Prestige Group','Sobha Developers','Embassy Group','Brigade Group','Adarsh Developers','Mahindra Lifespace'];
+// Fallback list used while API loads or on error
+const FALLBACK_BUILDERS = ['Prestige Group','Sobha Developers','Embassy Group','Brigade Group','Adarsh Developers','Mahindra Lifespace'];
 
 const STATUS_COLORS_MAP: Record<PropertyStatus, string> = {
   'New Launch': '#f15a29', 'Under Construction': '#F0B429', 'Ready': '#10b981', 'Resale': '#8B5CF6'
@@ -37,6 +40,13 @@ const TYPE_ICON_COLOR: Record<PropertyType, string> = {
 
 export default function FilterPanel({ filters, onChange, collapsed, onToggle, resultCount }: Props) {
   const [builderOpen, setBuilderOpen] = useState(false);
+  const [allBuilders, setAllBuilders] = useState<string[]>(FALLBACK_BUILDERS);
+
+  useEffect(() => {
+    api.getBuilders()
+      .then(setAllBuilders)
+      .catch(() => { /* silently keep fallback list */ });
+  }, []);
 
   const toggleType    = (t: PropertyType)   => onChange({ ...filters, types:    filters.types.includes(t)    ? filters.types.filter(x=>x!==t)    : [...filters.types, t] });
   const toggleStatus  = (s: PropertyStatus) => onChange({ ...filters, statuses: filters.statuses.includes(s) ? filters.statuses.filter(x=>x!==s) : [...filters.statuses, s] });
@@ -45,7 +55,8 @@ export default function FilterPanel({ filters, onChange, collapsed, onToggle, re
   const hasActive = filters.types.length < 4 || filters.statuses.length < 4
     || filters.priceMin > 4500000 || filters.priceMax < 35000000
     || filters.builder.length > 0 || filters.nearMetro || filters.highAppreciation
-    || filters.possessionMonth !== null || filters.possessionYear !== null;
+    || filters.possessionMonth !== null || filters.possessionYear !== null
+    || filters.city.trim().length > 0;
 
   const fmt = (v: number) => v >= 10000000 ? `₹${(v/10000000).toFixed(1)}Cr` : `₹${(v/100000).toFixed(0)}L`;
 
@@ -106,7 +117,11 @@ export default function FilterPanel({ filters, onChange, collapsed, onToggle, re
           </div>
           <div className="relative">
             <MapPin size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />
-            <input type="text" placeholder="Search area, city..."
+            <input
+              type="text"
+              placeholder="Search area, city..."
+              value={filters.city}
+              onChange={e => onChange({ ...filters, city: e.target.value })}
               className="w-full bg-brand-light border border-brand-border rounded-lg pl-8 pr-3 py-2 text-sm text-brand-text placeholder:text-brand-muted/60 focus:outline-none focus:border-brand-orange/60 focus:bg-white transition-all font-body" />
           </div>
           <button className="text-xs text-brand-orange mt-1.5 flex items-center gap-1.5 hover:opacity-80 font-medium">
@@ -194,7 +209,7 @@ export default function FilterPanel({ filters, onChange, collapsed, onToggle, re
             </button>
             {builderOpen && (
               <div className="absolute z-50 top-full mt-1 w-full bg-white border border-brand-border rounded-xl card-shadow overflow-hidden">
-                {ALL_BUILDERS.map(b => {
+                {allBuilders.map(b => {
                   const checked = filters.builder.includes(b);
                   return (
                     <button key={b} onClick={() => toggleBuilder(b)}
@@ -244,7 +259,7 @@ export default function FilterPanel({ filters, onChange, collapsed, onToggle, re
 
       {/* Reset */}
       <div className="px-4 py-3 border-t border-brand-border flex-shrink-0 bg-white">
-        <button onClick={() => onChange({ types: ALL_TYPES, statuses: ALL_STATUSES, priceMin: 4500000, priceMax: 35000000, builder: [], nearMetro: false, highAppreciation: false, possessionMonth: null, possessionYear: null })}
+        <button onClick={() => onChange({ types: ALL_TYPES, statuses: ALL_STATUSES, priceMin: 4500000, priceMax: 35000000, builder: [], nearMetro: false, highAppreciation: false, possessionMonth: null, possessionYear: null, city: '' })}
           className="w-full py-2 rounded-lg border-2 border-brand-orange text-brand-orange text-sm font-body font-semibold hover:bg-brand-orange hover:text-white transition-all uppercase tracking-wide">
           Reset All Filters
         </button>

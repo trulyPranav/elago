@@ -1,28 +1,39 @@
-import { Map, TrendingUp } from 'lucide-react';
-import { Property, PropertyStatus, PROPERTIES } from './data';
+import { Map, TrendingUp, Loader2 } from 'lucide-react';
+import { Property } from './data';
 
 interface StatusBarProps {
-  filtered: Property[];
+  properties: Property[];
+  total: number;
+  loading: boolean;
 }
 
-export default function StatusBar({ filtered }: StatusBarProps) {
+export default function StatusBar({ properties, total, loading }: StatusBarProps) {
+  const statusCounts = (status: string) =>
+    properties.filter(p => p.status === status).length;
+
   return (
     <div className="flex items-center gap-3 px-5 py-1.5 bg-white border-b border-brand-border/60 flex-shrink-0">
       <div className="flex items-center gap-1.5 text-xs text-brand-muted font-body">
-        <Map size={11} className="text-brand-orange" />
+        {loading
+          ? <Loader2 size={11} className="text-brand-orange animate-spin" />
+          : <Map size={11} className="text-brand-orange" />
+        }
         <span>
-          Showing <span className="text-brand-navy font-bold">{filtered.length}</span> properties
+          Showing <span className="text-brand-navy font-bold">{properties.length}</span>
+          {total > properties.length && (
+            <> of <span className="text-brand-navy font-bold">{total}</span></>
+          )} properties
         </span>
       </div>
       <div className="h-3 w-px bg-brand-border" />
-      {(['New Launch', 'Ready', 'Under Construction'] as PropertyStatus[]).map(s => (
+      {(['New Launch', 'Ready', 'Under Construction'] as const).map(s => (
         <span key={s} className="text-xs text-brand-muted font-body">
-          <span className="text-brand-navy font-bold">{PROPERTIES.filter(p => p.status === s).length}</span> {s}
+          <span className="text-brand-navy font-bold">{statusCounts(s)}</span> {s}
         </span>
       ))}
-      {filtered.some(p => p.highAppreciation) && (
+      {properties.some(p => p.highAppreciation) && (
         <span className="flex items-center gap-1 text-xs text-brand-orange font-body font-semibold ml-auto">
-          <TrendingUp size={10} /> {filtered.filter(p => p.highAppreciation).length} High Appreciation
+          <TrendingUp size={10} /> {properties.filter(p => p.highAppreciation).length} High Appreciation
         </span>
       )}
     </div>

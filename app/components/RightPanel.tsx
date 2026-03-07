@@ -4,12 +4,13 @@ import { ArrowUpDown, ChevronRight } from 'lucide-react';
 import { Property } from './data';
 import PropertyCard from './PropertyCard';
 
-export default function RightPanel({ properties, selectedId, onSelect, collapsed, onToggle }: {
+export default function RightPanel({ properties, selectedId, onSelect, collapsed, onToggle, loading = false }: {
   properties: Property[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   collapsed: boolean;
   onToggle: () => void;
+  loading?: boolean;
 }) {
   const [sort, setSort] = useState<'featured'|'price-asc'|'price-desc'>('featured');
   const sorted = [...properties].sort((a,b) => sort==='price-asc' ? a.priceFrom-b.priceFrom : sort==='price-desc' ? b.priceFrom-a.priceFrom : 0);
@@ -39,7 +40,7 @@ export default function RightPanel({ properties, selectedId, onSelect, collapsed
       <div className="px-3 py-2 border-b border-brand-border flex-shrink-0 bg-white">
         <div className="flex items-center gap-2">
           <ArrowUpDown size={11} className="text-brand-muted flex-shrink-0"/>
-          <select value={sort} onChange={e => setSort(e.target.value as any)}
+          <select value={sort} onChange={e => setSort(e.target.value as typeof sort)}
             className="flex-1 bg-brand-light border border-brand-border rounded-lg px-2 py-1.5 text-xs text-brand-text font-body focus:outline-none focus:border-brand-orange/50 transition-all">
             <option value="featured">Featured</option>
             <option value="price-asc">Price: Low → High</option>
@@ -49,7 +50,18 @@ export default function RightPanel({ properties, selectedId, onSelect, collapsed
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
-        {sorted.length === 0 ? (
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-brand-border overflow-hidden animate-pulse">
+              <div className="h-28 bg-brand-border/40" />
+              <div className="p-2.5 space-y-2">
+                <div className="h-3 bg-brand-border/40 rounded w-3/4" />
+                <div className="h-2.5 bg-brand-border/40 rounded w-1/2" />
+                <div className="h-3 bg-brand-border/40 rounded w-2/3" />
+              </div>
+            </div>
+          ))
+        ) : sorted.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full py-10 text-center">
             <div className="text-3xl mb-3">🏡</div>
             <p className="text-brand-muted font-body text-sm">No properties match</p>
