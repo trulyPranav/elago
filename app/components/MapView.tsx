@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { Loader } from '@googlemaps/js-api-loader';
 import { Property, TYPE_COLORS } from './data';
 import MapPreviewCard from './MapPreviewCard';
+
+const DEV_LOGS = process.env.NODE_ENV !== 'production';
 
 interface MapViewProps {
   properties: Property[];
@@ -114,136 +117,250 @@ export default function MapView({ properties, selectedId, onSelect, loading = fa
   const containerRef  = useRef<HTMLDivElement>(null);
   const markersRef    = useRef<any[]>([]);
   const facilityRef   = useRef<any[]>([]);
-  const [L, setL]     = useState<any>(null);
+  const mapsRef       = useRef<any>(null);
+  const markerLibRef  = useRef<any>(null);
+  const overlayRef    = useRef<any>(null);
   const [ready, setReady] = useState(false);
   const [activeProperty, setActiveProperty] = useState<Property | null>(null);
   const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
   const [loadingFacilities, setLoadingFacilities] = useState(false);
   const [activeFacilityTypes, setActiveFacilityTypes] = useState<string[]>([]);
+  const [mapError, setMapError] = useState<string | null>(null);
 
-  useEffect(() => {
-    import('leaflet').then(mod => setL(mod.default));
+  const clearMarker = useCallback((marker: any) => {
+    if (!marker) return;
+    if (typeof marker.setMap === 'function') {
+      marker.setMap(null);
+      return;
+    }
+    marker.map = null;
   }, []);
 
+  const clearFacilities = useCallback(() => {
+    facilityRef.current.forEach(clearMarker);
+    facilityRef.current = [];
+  }, [clearMarker]);
+
+  const closeActive = useCallback(() => {
+    setActiveProperty(null);
+    onSelect(null);
+    clearFacilities();
+    setActiveFacilityTypes([]);
+  }, [onSelect, clearFacilities]);
+
   useEffect(() => {
-    if (!L || !containerRef.current || mapRef.current) return;
-    delete (L.Icon.Default.prototype as any)._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-      iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-      shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    });
-    const map = L.map(containerRef.current, {
-      center: [12.9716, 77.5946], zoom: 11,
-      zoomControl: true, attributionControl: true,
-    });
-    // Light map tiles - CartoDB Voyager (clean, light, no labels clutter)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '© OpenStreetMap © CARTO',
-      subdomains: 'abcd', maxZoom: 19,
-    }).addTo(map);
-    mapRef.current = map;
-    const t = setTimeout(() => { map.invalidateSize({ animate: false }); setReady(true); }, 150);
-    return () => { clearTimeout(t); map.remove(); mapRef.current = null; };
-  }, [L]);
+    let active = true;
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
+    if (!apiKey) {
+      setMapError('Missing Google Maps API key. Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in .env.local.');
+      return;
+    }
+
+    if (!containerRef.current || mapRef.current) return;
+
+    const initMap = async () => {
+      try {
+        const loader = new Loader({
+          apiKey,
+          version: 'weekly',
+        });
+        const google = await loader.load();
+        const markerLib = await google.maps.importLibrary('marker');
+        if (!active || !containerRef.current) return;
+
+        mapsRef.current = google.maps;
+        markerLibRef.current = markerLib;
+        const map = new google.maps.Map(containerRef.current, {
+          center: { lat: 12.9716, lng: 77.5946 },
+          zoom: 11,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+          clickableIcons: false,
+          gestureHandling: 'greedy',
+          mapId: process.env.NEXT_PUBLIC_GOOGLE_MAP_ID || 'DEMO_MAP_ID',
+        });
+
+        const overlay = new google.maps.OverlayView();
+        overlay.onAdd = () => undefined;
+        overlay.draw = () => undefined;
+        overlay.onRemove = () => undefined;
+        overlay.setMap(map);
+
+        map.addListener('click', closeActive);
+
+        mapRef.current = map;
+        overlayRef.current = overlay;
+        setMapError(null);
+        setReady(true);
+      } catch (err) {
+        console.error(err);
+        if (active) setMapError('Failed to load Google Maps. Check API key and Places API enablement.');
+      }
+    };
+
+    initMap();
+
+    return () => {
+      active = false;
+      closeActive();
+      markersRef.current.forEach(clearMarker);
+      markersRef.current = [];
+      if (overlayRef.current) {
+        overlayRef.current.setMap(null);
+        overlayRef.current = null;
+      }
+      mapRef.current = null;
+      markerLibRef.current = null;
+      mapsRef.current = null;
+      setReady(false);
+    };
+  }, [closeActive, clearMarker]);
 
   useEffect(() => {
     if (!ready) return;
-    const onResize = () => mapRef.current?.invalidateSize({ animate: false });
+    const onResize = () => {
+      if (!mapsRef.current || !mapRef.current) return;
+      const center = mapRef.current.getCenter();
+      mapsRef.current.event.trigger(mapRef.current, 'resize');
+      if (center) mapRef.current.setCenter(center);
+    };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, [ready]);
 
-  const clearFacilities = () => {
-    facilityRef.current.forEach(m => m.remove());
-    facilityRef.current = [];
-  };
+  const facilityMarkerSvg = (emoji: string, color: string) => `
+    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30">
+      <circle cx="15" cy="15" r="14" fill="white" stroke="${color}" stroke-width="2"/>
+      <text x="15" y="20" text-anchor="middle" font-size="14">${emoji}</text>
+    </svg>`;
+
+  const buildMarkerContent = useCallback((svgMarkup: string, clickable = true) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = clickable ? 'property-pin' : '';
+    wrapper.innerHTML = svgMarkup;
+    return wrapper;
+  }, []);
 
   const loadNearby = useCallback(async (lat: number, lng: number) => {
-    if (!L || !mapRef.current) return;
+    if (!mapsRef.current || !mapRef.current || !markerLibRef.current) return;
     clearFacilities();
     setLoadingFacilities(true);
     setActiveFacilityTypes([]);
+
     try {
-      const q = `[out:json][timeout:15];(
-        node["amenity"="school"](around:2500,${lat},${lng});
-        node["amenity"="hospital"](around:2500,${lat},${lng});
-        node["amenity"="place_of_worship"](around:2500,${lat},${lng});
-        node["amenity"="supermarket"](around:2500,${lat},${lng});
-        node["shop"="mall"](around:2500,${lat},${lng});
-        node["railway"="station"](around:3000,${lat},${lng});
-        node["station"="subway"](around:3000,${lat},${lng});
-        node["leisure"="park"](around:2000,${lat},${lng});
-      );out body 30;`;
-      const res = await fetch('https://overpass-api.de/api/interpreter', {
-        method: 'POST', body: `data=${encodeURIComponent(q)}`,
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      if (DEV_LOGS) console.info('[MapView] Requesting nearby places for', { lat, lng });
+      const response = await fetch('/api/places/nearby', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat, lng }),
       });
-      const data = await res.json();
+
+      if (!response.ok) {
+        throw new Error(`Places request failed (${response.status})`);
+      }
+
+      const data: {
+        results: Array<{
+          facilityType: string;
+          places: Array<{ placeId: string; displayName: string; lat: number; lng: number }>;
+        }>;
+      } = await response.json();
+
       const found = new Set<string>();
-      (data.elements || []).forEach((el: any) => {
-        const a = el.tags?.amenity, s = el.tags?.shop, r = el.tags?.railway, st = el.tags?.station, le = el.tags?.leisure;
-        let ft = a === 'school' ? 'school' : a === 'hospital' ? 'hospital' : a === 'place_of_worship' ? 'place_of_worship'
-          : (a === 'supermarket' || s === 'mall') ? 'mall' : r === 'station' ? 'railway_station'
-          : st === 'subway' ? 'subway_entrance' : le === 'park' ? 'park' : '';
-        if (!ft) return;
-        const cfg = FACILITY_TYPES[ft];
+      const seen = new Set<string>();
+
+      (data.results || []).forEach(({ facilityType, places }) => {
+        const cfg = FACILITY_TYPES[facilityType];
         if (!cfg) return;
-        found.add(ft);
-        const name = el.tags?.name || cfg.label;
-        const icon = L.divIcon({
-          html: `<div style="width:30px;height:30px;background:white;border:2px solid ${cfg.color};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.15);" title="${name}">${cfg.emoji}</div>`,
-          className: '', iconSize: [30, 30], iconAnchor: [15, 15],
+        places.forEach((place) => {
+          const placeId = place?.placeId;
+          if (!place || typeof place.lat !== 'number' || typeof place.lng !== 'number') return;
+          if (placeId && seen.has(placeId)) return;
+          if (placeId) seen.add(placeId);
+
+          found.add(facilityType);
+          const marker = new markerLibRef.current.AdvancedMarkerElement({
+            map: mapRef.current,
+            position: { lat: place.lat, lng: place.lng },
+            title: place?.displayName || cfg.label,
+            zIndex: 10,
+            content: buildMarkerContent(facilityMarkerSvg(cfg.emoji, cfg.color), false),
+            gmpClickable: false,
+          });
+
+          facilityRef.current.push(marker);
         });
-        const m = L.marker([el.lat, el.lon], { icon, zIndexOffset: -100 });
-        m.bindTooltip(`${cfg.emoji} <strong>${name}</strong>`, { permanent: false, direction: 'top', offset: [0, -16], opacity: 1 });
-        m.addTo(mapRef.current);
-        facilityRef.current.push(m);
       });
+
       setActiveFacilityTypes(Array.from(found));
-    } catch(e) { console.error(e); }
+      if (DEV_LOGS) {
+        console.info('[MapView] Nearby places loaded', {
+          categories: Array.from(found),
+          totalMarkers: facilityRef.current.length,
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
     finally { setLoadingFacilities(false); }
-  }, [L]);
+  }, [clearFacilities]);
+
+  const getPropertyMarkerContent = useCallback((type: string, color: string, selected: boolean) => {
+    const svgHtml = getPropertyIcon(type, color, selected).replace(/\n\s*/g, ' ').trim();
+    return buildMarkerContent(svgHtml, true);
+  }, [buildMarkerContent]);
+
+  const getPopupPoint = useCallback((lat: number, lng: number) => {
+    if (!overlayRef.current || !mapsRef.current) return null;
+    const projection = overlayRef.current.getProjection?.();
+    if (!projection) return null;
+    const point = projection.fromLatLngToContainerPixel(new mapsRef.current.LatLng(lat, lng));
+    return point ? { x: point.x, y: point.y } : null;
+  }, []);
 
   useEffect(() => {
-    if (!L || !mapRef.current || !ready) return;
-    markersRef.current.forEach(m => m.remove());
+    if (!mapsRef.current || !mapRef.current || !ready || !markerLibRef.current) return;
+    markersRef.current.forEach(clearMarker);
     markersRef.current = [];
+
     properties.forEach(property => {
       const color = TYPE_COLORS[property.type];
       const isSel = property.id === selectedId;
-      const svgHtml = getPropertyIcon(property.type, color, isSel);
-      const w = isSel ? 42 : 34;
-      const icon = L.divIcon({
-        html: `<div class="property-pin">${svgHtml}</div>`,
-        className: '', iconSize: [w, w + 6], iconAnchor: [w / 2, w + 6], popupAnchor: [0, -(w + 8)],
+
+      const marker = new markerLibRef.current.AdvancedMarkerElement({
+        map: mapRef.current,
+        position: { lat: property.lat, lng: property.lng },
+        content: getPropertyMarkerContent(property.type, color, isSel),
+        zIndex: isSel ? 1000 : 100,
+        title: property.name,
+        gmpClickable: true,
       });
-      const marker = L.marker([property.lat, property.lng], { icon, zIndexOffset: isSel ? 1000 : 0 });
-      marker.on('click', (e: any) => {
-        const pt = mapRef.current.latLngToContainerPoint(e.latlng);
-        setPopupPos({ x: pt.x, y: pt.y });
+
+      marker.addEventListener('gmp-click', () => {
+        if (DEV_LOGS) console.info('[MapView] Property marker clicked', { id: property.id, name: property.name });
+        const pt = getPopupPoint(property.lat, property.lng);
+        if (pt) setPopupPos(pt);
         setActiveProperty(property);
         onSelect(property.id);
         loadNearby(property.lat, property.lng);
-        e.originalEvent?.stopPropagation();
       });
-      marker.addTo(mapRef.current);
+
       markersRef.current.push(marker);
     });
-  }, [L, ready, properties, selectedId]);
+  }, [ready, properties, selectedId, getPropertyMarkerContent, getPopupPoint, onSelect, loadNearby, clearMarker]);
 
   useEffect(() => {
     if (!mapRef.current || !selectedId || !ready) return;
     const p = properties.find(x => x.id === selectedId);
-    if (p) mapRef.current.panTo([p.lat, p.lng], { animate: true, duration: 0.5 });
+    if (p) mapRef.current.panTo({ lat: p.lat, lng: p.lng });
   }, [selectedId, ready]);
 
   useEffect(() => {
-    if (!mapRef.current || !ready) return;
-    const close = () => { setActiveProperty(null); onSelect(null); clearFacilities(); setActiveFacilityTypes([]); };
-    mapRef.current.on('click', close);
-    return () => mapRef.current?.off('click', close);
-  }, [ready]);
+    if (!selectedId) return;
+    const exists = properties.some(p => p.id === selectedId);
+    if (!exists) closeActive();
+  }, [selectedId, properties, closeActive]);
 
   const clampL = () => Math.min(Math.max(popupPos.x - 144, 8), (containerRef.current?.offsetWidth ?? 900) - 298);
   const clampT = () => Math.max(popupPos.y - 440, 8);
@@ -259,11 +376,20 @@ export default function MapView({ properties, selectedId, onSelect, loading = fa
         </div>
       )}
 
-      {!ready && (
+      {!ready && !mapError && (
         <div className="absolute inset-0 flex items-center justify-center bg-brand-light z-10">
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-2 border-brand-orange border-t-transparent rounded-full animate-spin" />
             <span className="text-xs text-brand-muted font-body tracking-widest uppercase">Loading map…</span>
+          </div>
+        </div>
+      )}
+
+      {mapError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-brand-light z-10">
+          <div className="text-center px-6">
+            <p className="text-sm text-brand-navy font-body font-semibold mb-1">Google Maps failed to initialize</p>
+            <p className="text-xs text-brand-muted font-body">{mapError}</p>
           </div>
         </div>
       )}
@@ -312,7 +438,7 @@ export default function MapView({ properties, selectedId, onSelect, loading = fa
         <div className="absolute z-[2000] pointer-events-auto" style={{ left: clampL(), top: clampT() }}>
           <MapPreviewCard
             property={activeProperty}
-            onClose={() => { setActiveProperty(null); onSelect(null); clearFacilities(); setActiveFacilityTypes([]); }}
+            onClose={closeActive}
             onOpenDetails={() => router.push(`/property/${activeProperty.id}`)}
           />
         </div>
