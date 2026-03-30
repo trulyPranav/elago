@@ -122,9 +122,9 @@ export default function MapView({ properties, selectedId, onSelect, loading = fa
   const overlayRef    = useRef<any>(null);
   const [ready, setReady] = useState(false);
   const [activeProperty, setActiveProperty] = useState<Property | null>(null);
-  const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
   const [loadingFacilities, setLoadingFacilities] = useState(false);
   const [activeFacilityTypes, setActiveFacilityTypes] = useState<string[]>([]);
+  const [isCardRetracted, setIsCardRetracted] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
   const clearMarker = useCallback((marker: any) => {
@@ -143,6 +143,7 @@ export default function MapView({ properties, selectedId, onSelect, loading = fa
 
   const closeActive = useCallback(() => {
     setActiveProperty(null);
+    setIsCardRetracted(false);
     onSelect(null);
     clearFacilities();
     setActiveFacilityTypes([]);
@@ -311,14 +312,6 @@ export default function MapView({ properties, selectedId, onSelect, loading = fa
     return buildMarkerContent(svgHtml, true);
   }, [buildMarkerContent]);
 
-  const getPopupPoint = useCallback((lat: number, lng: number) => {
-    if (!overlayRef.current || !mapsRef.current) return null;
-    const projection = overlayRef.current.getProjection?.();
-    if (!projection) return null;
-    const point = projection.fromLatLngToContainerPixel(new mapsRef.current.LatLng(lat, lng));
-    return point ? { x: point.x, y: point.y } : null;
-  }, []);
-
   useEffect(() => {
     if (!mapsRef.current || !mapRef.current || !ready || !markerLibRef.current) return;
     markersRef.current.forEach(clearMarker);
@@ -339,8 +332,7 @@ export default function MapView({ properties, selectedId, onSelect, loading = fa
 
       marker.addEventListener('gmp-click', () => {
         if (DEV_LOGS) console.info('[MapView] Property marker clicked', { id: property.id, name: property.name });
-        const pt = getPopupPoint(property.lat, property.lng);
-        if (pt) setPopupPos(pt);
+        setIsCardRetracted(false);
         setActiveProperty(property);
         onSelect(property.id);
         loadNearby(property.lat, property.lng);
@@ -348,7 +340,7 @@ export default function MapView({ properties, selectedId, onSelect, loading = fa
 
       markersRef.current.push(marker);
     });
-  }, [ready, properties, selectedId, getPropertyMarkerContent, getPopupPoint, onSelect, loadNearby, clearMarker]);
+  }, [ready, properties, selectedId, getPropertyMarkerContent, onSelect, loadNearby, clearMarker]);
 
   useEffect(() => {
     if (!mapRef.current || !selectedId || !ready) return;
@@ -361,9 +353,6 @@ export default function MapView({ properties, selectedId, onSelect, loading = fa
     const exists = properties.some(p => p.id === selectedId);
     if (!exists) closeActive();
   }, [selectedId, properties, closeActive]);
-
-  const clampL = () => Math.min(Math.max(popupPos.x - 144, 8), (containerRef.current?.offsetWidth ?? 900) - 298);
-  const clampT = () => Math.max(popupPos.y - 440, 8);
 
   return (
     <div className="relative w-full h-full" style={{ minHeight: 0 }}>
@@ -434,13 +423,33 @@ export default function MapView({ properties, selectedId, onSelect, loading = fa
         </div>
       )}
 
-      {activeProperty && ready && (
-        <div className="absolute z-[2000] pointer-events-auto" style={{ left: clampL(), top: clampT() }}>
-          <MapPreviewCard
-            property={activeProperty}
-            onClose={closeActive}
-            onOpenDetails={() => router.push(`/property/${activeProperty.id}`)}
-          />
+      {activeProperty && ready && !isCardRetracted && (
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 z-[2000] pointer-events-auto">
+          <div className="relative">
+            <button
+              onClick={() => setIsCardRetracted(true)}
+              className="absolute -top-2 -right-2 z-10 px-2 py-1 rounded-full bg-brand-navy text-white text-[10px] font-body font-semibold shadow hover:bg-brand-navy2 transition-colors"
+            >
+              Retract
+            </button>
+            <MapPreviewCard
+              property={activeProperty}
+              onClose={closeActive}
+              onOpenDetails={() => router.push(`/property/${activeProperty.id}`)}
+            />
+          </div>
+        </div>
+      )}
+
+      {activeProperty && ready && isCardRetracted && (
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 z-[2000] pointer-events-auto">
+          <button
+            onClick={() => setIsCardRetracted(false)}
+            className="px-3 py-2 rounded-xl bg-white border border-brand-border card-shadow text-brand-navy text-xs font-body font-semibold hover:bg-brand-hover transition-colors max-w-[220px] text-left"
+          >
+            <span className="block uppercase tracking-wider text-[10px] text-brand-muted mb-0.5">Selected</span>
+            <span className="block truncate">{activeProperty.name}</span>
+          </button>
         </div>
       )}
     </div>
