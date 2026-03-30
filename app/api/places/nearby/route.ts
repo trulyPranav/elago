@@ -7,19 +7,19 @@ type NearbyRequestBody = {
 
 type SearchConfig = {
   facilityType: string;
-  placeType: string;
+  placeTypes: string[];
   radius: number;
 };
 
 const SEARCHES: SearchConfig[] = [
-  { facilityType: 'school', placeType: 'school', radius: 2500 },
-  { facilityType: 'hospital', placeType: 'hospital', radius: 2500 },
-  { facilityType: 'place_of_worship', placeType: 'place_of_worship', radius: 2500 },
-  { facilityType: 'supermarket', placeType: 'supermarket', radius: 2500 },
-  { facilityType: 'mall', placeType: 'shopping_mall', radius: 3000 },
-  { facilityType: 'railway_station', placeType: 'train_station', radius: 3000 },
-  { facilityType: 'subway_entrance', placeType: 'subway_station', radius: 3000 },
-  { facilityType: 'park', placeType: 'park', radius: 2000 },
+  { facilityType: 'school', placeTypes: ['school'], radius: 2500 },
+  { facilityType: 'hospital', placeTypes: ['hospital'], radius: 2500 },
+  { facilityType: 'place_of_worship', placeTypes: ['hindu_temple', 'church', 'mosque', 'synagogue'], radius: 2500 },
+  { facilityType: 'supermarket', placeTypes: ['supermarket'], radius: 2500 },
+  { facilityType: 'mall', placeTypes: ['shopping_mall'], radius: 3000 },
+  { facilityType: 'railway_station', placeTypes: ['train_station'], radius: 3000 },
+  { facilityType: 'subway_entrance', placeTypes: ['subway_station'], radius: 3000 },
+  { facilityType: 'park', placeTypes: ['park'], radius: 2000 },
 ];
 
 const PLACES_ENDPOINT = process.env.GOOGLE_PLACES_ENDPOINT || 'https://places.googleapis.com/v1/places:searchNearby';
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
             'X-Goog-FieldMask': 'places.id,places.displayName,places.location',
           },
           body: JSON.stringify({
-            includedTypes: [search.placeType],
+            includedTypes: search.placeTypes,
             maxResultCount: 6,
             locationRestriction: {
               circle: {
