@@ -48,6 +48,7 @@ export default function PropertyForm({ initial, submitLabel, onSubmit, onCancel 
     if (!form.address.trim())     e.address     = 'Required';
     if (!form.phone.trim())       e.phone       = 'Required';
     if (!form.email.trim())       e.email       = 'Required';
+    if (!form.bedrooms || form.bedrooms <= 0) e.bedrooms = 'Required';
     if (form.areaSqft <= 0)       e.areaSqft    = 'Must be > 0';
     if (!form.locality.trim())    e.locality    = 'Required';
     if (!form.city.trim())        e.city        = 'Required';
@@ -145,7 +146,7 @@ export default function PropertyForm({ initial, submitLabel, onSubmit, onCancel 
               ))}
             </div>
           </Field>
-          <Field label="Bedrooms (BHK)" error={errors.bedrooms}>
+          <Field label="Bedrooms (BHK)" required error={errors.bedrooms}>
             <input type="number" min={1} value={form.bedrooms ?? ''} onChange={e => set('bedrooms', e.target.value ? Number(e.target.value) : undefined)}
               className={input(!!errors.bedrooms)} placeholder="e.g. 3" />
           </Field>
