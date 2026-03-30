@@ -30,17 +30,19 @@ export default function AppHeader() {
   }, []);
 
   return (
-    <header className="flex items-center justify-between px-5 py-2 bg-white border-b border-brand-border z-50 flex-shrink-0 card-shadow">
-      <div className="flex items-center gap-6">
+    <header className="relative flex items-center justify-between px-5 py-2 bg-white border-b border-brand-border z-50 flex-shrink-0 card-shadow">
+      <div className="flex items-center gap-2">
         <ElagoLogo size="md" />
-        <div className="h-6 w-px bg-brand-border" />
-        <span className="text-xs font-body font-bold text-brand-navy uppercase tracking-widest">Dashboard</span>
-        <nav className="hidden md:flex items-center gap-1 ml-2">
-          {NAV_ITEMS.map(({ label, href, icon: Icon }) => (
+        <div className="h-6 bg-brand-border" />
+      </div>
+
+      <div className="hidden xl:flex absolute left-1/2 -translate-x-1/2 items-center justify-center w-full max-w-4xl px-6">
+        <div className="grid grid-cols-[1fr_1fr_2.4fr_1fr_1fr] gap-3 w-full items-center">
+          {NAV_ITEMS.slice(0, 2).map(({ label, href, icon: Icon }) => (
             <button
               key={label}
               onClick={() => router.push(href)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-body transition-colors ${
+              className={`w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-body transition-colors ${
                 pathname === href
                   ? 'bg-brand-navy text-white font-semibold'
                   : 'text-brand-muted hover:text-brand-navy hover:bg-brand-hover'
@@ -49,16 +51,30 @@ export default function AppHeader() {
               <Icon size={13} /> {label}
             </button>
           ))}
-        </nav>
-      </div>
 
-      <div className="hidden lg:flex items-center gap-2 bg-brand-light border border-brand-border rounded-xl px-3 py-2 w-64 focus-within:border-brand-orange/50 transition-colors">
-        <Search size={13} className="text-brand-muted flex-shrink-0" />
-        <input
-          type="text"
-          placeholder="Search projects, builders, areas…"
-          className="bg-transparent text-sm text-brand-text placeholder:text-brand-muted/60 focus:outline-none font-body w-full"
-        />
+          <div className="w-full flex items-center gap-2 bg-brand-light border border-brand-border rounded-xl px-3 py-2 focus-within:border-brand-orange/50 transition-colors">
+            <Search size={13} className="text-brand-muted flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Search projects, builders, areas…"
+              className="bg-transparent text-sm text-brand-text placeholder:text-brand-muted/60 focus:outline-none font-body w-full"
+            />
+          </div>
+
+          {NAV_ITEMS.slice(2).map(({ label, href, icon: Icon }) => (
+            <button
+              key={label}
+              onClick={() => router.push(href)}
+              className={`w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-body transition-colors ${
+                pathname === href
+                  ? 'bg-brand-navy text-white font-semibold'
+                  : 'text-brand-muted hover:text-brand-navy hover:bg-brand-hover'
+              }`}
+            >
+              <Icon size={13} /> {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex items-center gap-1.5">
