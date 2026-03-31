@@ -141,7 +141,7 @@ export interface PropertyPayload {
   priceTo: number;
   pricePerSqft?: number;
   areaSqft: number;
-  bedrooms?: number;
+  bedrooms: number[];
   possession: string;
   phone: string;
   email: string;

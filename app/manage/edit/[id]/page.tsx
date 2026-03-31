@@ -23,6 +23,16 @@ export default function EditPropertyPage() {
         if (cancelled) return;
         // Map Property → PropertyPayload (drop read-only server fields)
         const p = res.data;
+        // Parse bedrooms: "2-3 BHK" or "1 BHK" → [2, 3] or [1]
+        let parsedBedrooms: number[] = [];
+        if (p.bedrooms) {
+          const match = p.bedrooms.match(/(\d+)(?:-(\d+))?/);
+          if (match) {
+            const start = parseInt(match[1]);
+            const end = match[2] ? parseInt(match[2]) : start;
+            parsedBedrooms = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+          }
+        }
         setInitial({
           name: p.name, builder: p.builder, address: p.address,
           locality: '', city: '',
@@ -30,7 +40,7 @@ export default function EditPropertyPage() {
           priceFrom: p.priceFrom, priceTo: p.priceTo,
           pricePerSqft: p.pricePerSqft,
           areaSqft: parseInt(p.area) || 0,
-          bedrooms: p.bedrooms ? parseInt(p.bedrooms) || undefined : undefined,
+          bedrooms: parsedBedrooms,
           possession: p.possession,
           phone: p.phone, email: p.email, image: p.image,
           description: p.description,
