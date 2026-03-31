@@ -74,6 +74,7 @@ export class ApiError extends Error {
   constructor(
     public readonly statusCode: number,
     message: string,
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -84,8 +85,9 @@ async function apiFetch<T>(
   path: string,
   init?: RequestInit,
 ): Promise<ApiResponse<T>> {
+  const isFormData = typeof FormData !== 'undefined' && init?.body instanceof FormData;
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
     ...init,
   });
 
@@ -100,6 +102,7 @@ async function apiFetch<T>(
     throw new ApiError(
       body.statusCode ?? res.status,
       body.message ?? `API error ${res.status}`,
+      body,
     );
   }
 
@@ -153,6 +156,26 @@ export interface PropertyPayload {
   builderDocLink?: string;
   priceChartUrl?: string;
   rental?: { expectedRent?: number; vacancyRate?: number };
+}
+
+export interface BulkUploadSkippedDuplicate {
+  rowNumber: number;
+  name: string;
+  builder: string;
+  reason: string;
+}
+
+export interface BulkUploadImportedProperty {
+  id: string;
+  name: string;
+}
+
+export interface BulkUploadResult {
+  message: string;
+  imported: number;
+  skipped: number;
+  skippedDuplicates?: BulkUploadSkippedDuplicate[];
+  properties?: BulkUploadImportedProperty[];
 }
 
 // ─── API body transformer ────────────────────────────────────────────────────
@@ -246,5 +269,21 @@ export const api = {
   /** Delete a property */
   deleteProperty: async (id: string): Promise<void> => {
     await apiFetch<null>(`/api/properties/${id}`, { method: 'DELETE' });
+  },
+
+  /** Bulk upload properties via CSV */
+  bulkUploadProperties: async (file: File): Promise<BulkUploadResult> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await apiFetch<BulkUploadResult>('/api/properties/bulk-upload', {
+      method: 'POST',
+      body: formData,
+    });
+    return {
+      ...res.data,
+      skippedDuplicates: res.data.skippedDuplicates ?? [],
+      properties: res.data.properties ?? [],
+    };
   },
 };
