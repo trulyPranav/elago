@@ -178,6 +178,44 @@ export interface BulkUploadResult {
   properties?: BulkUploadImportedProperty[];
 }
 
+export type NearbyAmenityInput =
+  | string
+  | { type?: string; types?: string[]; displayName?: string };
+
+export interface PropertyChartRequest {
+  currentPropertyValue: number;
+  currentRentValue: number;
+  nearbyAmenities: NearbyAmenityInput[];
+  startYear: number;
+  yearsToProject: number;
+  intervalYears: number;
+}
+
+export interface PropertyChartPoint {
+  x: number;
+  propertyValueINR: number;
+  rentValueINR: number;
+  totalINR: number;
+}
+
+export interface PropertyChartMeta {
+  chartStartYear: number;
+  rentStartYear: number;
+  propertyIndex: number;
+  rentIndex: number;
+}
+
+export interface PropertyChartResult {
+  propertyName: string;
+  locationCoordinates?: { lat: number; lng: number };
+  chartMeta: PropertyChartMeta;
+  coordinates: PropertyChartPoint[];
+  aiEvaluation?: {
+    factors?: unknown;
+    [key: string]: unknown;
+  };
+}
+
 // ─── API body transformer ────────────────────────────────────────────────────
 function toApiBody(p: PropertyPayload) {
   return {
@@ -285,5 +323,19 @@ export const api = {
       skippedDuplicates: res.data.skippedDuplicates ?? [],
       properties: res.data.properties ?? [],
     };
+  },
+
+  /** AI-driven property/rent projection chart */
+  getPropertyChart: async (
+    id: string,
+    payload: PropertyChartRequest,
+    signal?: AbortSignal,
+  ): Promise<PropertyChartResult> => {
+    const res = await apiFetch<PropertyChartResult>(`/api/properties/${id}/chart`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      signal,
+    });
+    return res.data;
   },
 };
