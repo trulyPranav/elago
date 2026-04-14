@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import Image from 'next/image';
 import { Search, ChevronDown, Map, BarChart2, List, Settings2 } from 'lucide-react';
-import ElagoLogo from './ElagoLogo';
 import { DEFAULT_USER } from '../lib/user';
 
 const NAV_ITEMS = [
@@ -32,8 +32,15 @@ export default function AppHeader() {
   return (
     <header className="relative flex items-center justify-between px-5 py-2 bg-white border-b border-brand-border z-50 flex-shrink-0 card-shadow">
       <div className="flex items-center gap-2">
-        <ElagoLogo size="md" />
-        <div className="h-6 bg-brand-border" />
+        <Image
+          src="/elago_logo.jpeg"
+          alt="elaGO"
+          width={110}
+          height={32}
+          className="h-8 w-auto object-contain"
+          priority
+        />
+        <div className="h-6 w-px bg-brand-border" />
       </div>
 
       <div className="hidden xl:flex absolute left-1/2 -translate-x-1/2 items-center justify-center w-full max-w-4xl px-6">

@@ -1,8 +1,8 @@
 export const DEFAULT_USER = {
-  name:   'Rohan Sharma',
+name:   'Default Admin',
   email:  'admin@elago.com',
   role:   'Admin',
-  avatar: 'RS',
+  avatar: 'A',
 } as const;
 
 export type User = typeof DEFAULT_USER;
