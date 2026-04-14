@@ -141,10 +141,12 @@ export default function PropertyDetailPage() {
   const [trendsLoading, setTrendsLoading] = useState(false);
   const [trendsError, setTrendsError] = useState<string | null>(null);
   const [trendsDebugPayload, setTrendsDebugPayload] = useState<string | null>(null);
+  const [chartContainerWidth, setChartContainerWidth] = useState(0);
 
   const chartCacheRef = useRef<Map<string, PropertyChartResult>>(new Map());
   const trendsAbortRef = useRef<AbortController | null>(null);
   const trendsInitializedRef = useRef(false);
+  const chartContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -200,6 +202,31 @@ export default function PropertyDetailPage() {
       trendsAbortRef.current?.abort();
     };
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'trends' || !trendsResult) {
+      setChartContainerWidth(0);
+      return;
+    }
+
+    const element = chartContainerRef.current;
+    if (!element) return;
+
+    const updateSize = () => {
+      setChartContainerWidth(element.getBoundingClientRect().width);
+    };
+
+    updateSize();
+
+    const observer = new ResizeObserver(() => {
+      updateSize();
+    });
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [activeTab, trendsResult]);
 
   const FLOOR_STATUS_DISPLAY = {
     available: { label: 'Available', icon: <CheckCircle2 size={13} className="text-green-500" />, color: 'text-green-600' },
@@ -990,8 +1017,9 @@ export default function PropertyDetailPage() {
                   </div>
 
                   <div className="overflow-x-auto">
-                    <div className="min-w-[760px] h-[360px]">
-                      <ResponsiveContainer width="100%" height="100%">
+                    <div ref={chartContainerRef} className="min-w-[760px] h-[360px]">
+                      {chartContainerWidth > 0 && (
+                        <ResponsiveContainer width={chartContainerWidth} height={360}>
                         <LineChart data={chartPoints} margin={{ top: 20, right: 20, left: 10, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                           <XAxis dataKey="x" tick={{ fontSize: 12, fill: '#64748b' }} />
@@ -1017,7 +1045,8 @@ export default function PropertyDetailPage() {
                           {seriesVisibility.rent && <Line type="monotone" dataKey="rentValueINR" name="Rent Value" stroke="#16a34a" strokeWidth={3} dot={{ r: 3 }} />}
                           {seriesVisibility.total && <Line type="monotone" dataKey="totalINR" name="Total" stroke="#f59e0b" strokeWidth={3} dot={{ r: 3 }} />}
                         </LineChart>
-                      </ResponsiveContainer>
+                        </ResponsiveContainer>
+                      )}
                     </div>
                   </div>
 
