@@ -2,8 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { Search, ChevronDown, Map, BarChart2, List, Settings2 } from 'lucide-react';
-import { DEFAULT_USER } from '../lib/user';
+import { Search, ChevronDown, Map, BarChart2, List, Settings2, LogIn } from 'lucide-react';
+import ElagoLogo from './ElagoLogo';
 
 const NAV_ITEMS = [
   { label: 'Map View',  href: '/',          icon: Map },
@@ -15,9 +15,20 @@ const NAV_ITEMS = [
 export default function AppHeader() {
   const router   = useRouter();
   const pathname = usePathname();
-  const user     = DEFAULT_USER;
+  const [user, setUser] = useState<{ name: string; email: string; role: string; avatar: string } | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('elago_user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (err) {
+        setUser(null);
+      }
+    }
+  }, [pathname]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -32,14 +43,9 @@ export default function AppHeader() {
   return (
     <header className="relative flex items-center justify-between px-5 py-2 bg-white border-b border-brand-border z-50 flex-shrink-0 card-shadow">
       <div className="flex items-center gap-2">
-        <Image
-          src="/elago_logo.jpeg"
-          alt="elaGO"
-          width={110}
-          height={32}
-          className="h-8 w-auto object-contain"
-          priority
-        />
+        <button onClick={() => router.push('/')} className="hover:opacity-90 transition-opacity">
+          <ElagoLogo size="sm" />
+        </button>
         <div className="h-6 w-px bg-brand-border" />
       </div>
 
@@ -85,30 +91,51 @@ export default function AppHeader() {
       </div>
 
       <div className="flex items-center gap-1.5">
-        <div className="relative ml-1" ref={userMenuRef}>
-          <button
-            onClick={() => setShowUserMenu(v => !v)}
-            className="flex items-center gap-2 pl-3 border-l border-brand-border hover:opacity-80 transition-opacity"
-          >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-navy to-brand-orange flex items-center justify-center text-white text-sm font-bold font-body shadow">
-              {user.avatar}
-            </div>
-            <div className="hidden md:block text-left">
-              <p className="text-xs font-body font-bold text-brand-navy leading-none">{user.name}</p>
-              <p className="text-[10px] font-body text-brand-orange leading-none mt-0.5">{user.role}</p>
-            </div>
-            <ChevronDown size={12} className={`text-brand-muted transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
-          </button>
-
-          {showUserMenu && (
-            <div className="absolute right-0 top-full mt-2 w-44 bg-white rounded-xl card-shadow-lg border border-brand-border z-50 overflow-hidden animate-fadein-fast">
-              <div className="px-4 py-3 bg-brand-light">
-                <p className="text-xs font-bold text-brand-navy font-body">{user.name}</p>
-                <p className="text-[10px] text-brand-muted font-body">{user.email}</p>
+        {user ? (
+          <div className="relative ml-1" ref={userMenuRef}>
+            <button
+              onClick={() => setShowUserMenu(v => !v)}
+              className="flex items-center gap-2 pl-3 border-l border-brand-border hover:opacity-80 transition-opacity"
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-navy to-brand-orange flex items-center justify-center text-white text-sm font-bold font-body shadow">
+                {user.avatar}
               </div>
-            </div>
-          )}
-        </div>
+              <div className="hidden md:block text-left">
+                <p className="text-xs font-body font-bold text-brand-navy leading-none">{user.name}</p>
+                <p className="text-[10px] font-body text-brand-orange leading-none mt-0.5">{user.role}</p>
+              </div>
+              <ChevronDown size={12} className={`text-brand-muted transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+            </button>
+
+            {showUserMenu && (
+              <div className="absolute right-0 top-full mt-2 w-44 bg-white rounded-xl card-shadow-lg border border-brand-border z-50 overflow-hidden animate-fadein-fast">
+                <div className="px-4 py-3 bg-brand-light border-b border-brand-border">
+                  <p className="text-xs font-bold text-brand-navy font-body">{user.name}</p>
+                  <p className="text-[10px] text-brand-muted font-body truncate">{user.email}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('elago_token');
+                    localStorage.removeItem('elago_user');
+                    setUser(null);
+                    setShowUserMenu(false);
+                    router.push('/');
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-xs font-body text-red-600 hover:bg-brand-hover transition-colors font-medium"
+                >
+                  Log Out
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <button
+            onClick={() => router.push('/login')}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg border border-brand-orange text-brand-orange text-xs font-body font-semibold hover:bg-brand-orange hover:text-white transition-all shadow-sm"
+          >
+            <LogIn size={13} /> Sign In
+          </button>
+        )}
       </div>
     </header>
   );

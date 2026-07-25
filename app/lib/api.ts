@@ -86,9 +86,25 @@ async function apiFetch<T>(
   init?: RequestInit,
 ): Promise<ApiResponse<T>> {
   const isFormData = typeof FormData !== 'undefined' && init?.body instanceof FormData;
+  
+  const headers: Record<string, string> = {};
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
+  
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('elago_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: isFormData ? undefined : { 'Content-Type': 'application/json' },
     ...init,
+    headers: {
+      ...headers,
+      ...((init?.headers as Record<string, string>) || {}),
+    },
   });
 
   let body: ApiResponse<T>;
@@ -336,6 +352,27 @@ export const api = {
       body: JSON.stringify(payload),
       signal,
     });
+    return res.data;
+  },
+
+  /** Login with credentials */
+  login: async (email: string, password: string): Promise<{ token: string; user: any }> => {
+    const res = await apiFetch<{ token: string; user: any }>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    
+    if (typeof window !== 'undefined' && res.data) {
+      localStorage.setItem('elago_token', res.data.token);
+      localStorage.setItem('elago_user', JSON.stringify(res.data.user));
+    }
+    
+    return res.data;
+  },
+
+  /** Get current user details from active session */
+  getMe: async (): Promise<{ user: any }> => {
+    const res = await apiFetch<{ user: any }>('/api/auth/me');
     return res.data;
   },
 };
