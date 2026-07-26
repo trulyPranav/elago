@@ -35,7 +35,7 @@ export default function EditPropertyPage() {
         }
         setInitial({
           name: p.name, builder: p.builder, address: p.address,
-          locality: '', city: '',
+          locality: p.locality ?? '', city: p.city ?? '',
           lat: p.lat, lng: p.lng, type: p.type, status: p.status,
           priceFrom: p.priceFrom, priceTo: p.priceTo,
           pricePerSqft: p.pricePerSqft,

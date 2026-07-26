@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
-import { Loader2, Plus, X } from 'lucide-react';
-import type { PropertyPayload } from '../lib/api';
+import { Loader2, Plus, X, Upload, Image, Trash2, Link } from 'lucide-react';
+import { api, type PropertyPayload } from '../lib/api';
 import type { PropertyType, PropertyStatus } from './data';
 
 const ALL_TYPES:    PropertyType[]   = ['Flat', 'Villa', 'Commercial', 'Plot'];
@@ -34,6 +34,26 @@ export default function PropertyForm({ initial, submitLabel, onSubmit, onCancel 
   const [saving, setSaving]   = useState(false);
   const [errors, setErrors]   = useState<Partial<Record<keyof PropertyPayload, string>>>({});
   const [apiError, setApiError] = useState<string | null>(null);
+
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [useUrlFallback, setUseUrlFallback] = useState(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    setUploadError(null);
+    try {
+      const res = await api.uploadImage(file);
+      set('image', res.url);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   // Controlled list helpers
   const [hlInput, setHlInput] = useState('');
@@ -273,16 +293,128 @@ export default function PropertyForm({ initial, submitLabel, onSubmit, onCancel 
       {/* ── Media & Docs ───────────────────────────────────── */}
       <Section title="Media & Documents">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Field label="Cover Image URL" required error={errors.image} className="md:col-span-2">
-            <input value={form.image} onChange={e => set('image', e.target.value)}
-              className={input(!!errors.image)} placeholder="https://…" />
-          </Field>
-          {form.image && (
-            <div className="md:col-span-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={form.image} alt="preview" className="h-32 w-full object-cover rounded-xl border border-brand-border" onError={e => (e.currentTarget.style.display = 'none')} />
-            </div>
-          )}
+          <div className="md:col-span-2">
+            <label className="block text-xs font-body font-semibold text-brand-muted uppercase tracking-wide mb-1.5">
+              Cover Image <span className="text-brand-orange ml-0.5">*</span>
+            </label>
+
+            {useUrlFallback ? (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    value={form.image}
+                    onChange={e => {
+                      set('image', e.target.value);
+                      setUploadError(null);
+                    }}
+                    className={input(!!errors.image) + ' flex-1'}
+                    placeholder="https://images.unsplash.com/... or any public image URL"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseUrlFallback(false);
+                      setUploadError(null);
+                    }}
+                    className="px-3.5 py-2 rounded-xl border border-brand-border text-brand-navy font-body text-xs font-semibold hover:bg-brand-hover transition-colors flex items-center gap-1.5"
+                  >
+                    <Upload size={14} /> Upload File
+                  </button>
+                </div>
+                {errors.image && <p className="text-xs text-red-500 font-body mt-1">{errors.image}</p>}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {form.image ? (
+                  <div className="relative rounded-2xl overflow-hidden border border-brand-border group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={form.image}
+                      alt="Property cover preview"
+                      className="h-48 w-full object-cover"
+                      onError={e => {
+                        setUploadError("Unable to load preview. Please verify image URL.");
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-brand-navy/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                      <label className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white text-brand-navy font-body text-xs font-semibold cursor-pointer hover:bg-brand-light transition-all shadow">
+                        <Upload size={14} /> Replace
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          disabled={uploadingImage}
+                          className="hidden"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          set('image', '');
+                          setUploadError(null);
+                        }}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-500 text-white font-body text-xs font-semibold hover:bg-red-600 transition-all shadow"
+                      >
+                        <Trash2 size={14} /> Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label
+                    className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-6 cursor-pointer transition-all ${
+                      errors.image
+                        ? 'border-red-400 bg-red-50/10 hover:bg-red-50/20'
+                        : 'border-brand-border bg-brand-light/30 hover:border-brand-orange/40 hover:bg-brand-light/50'
+                    }`}
+                  >
+                    {uploadingImage ? (
+                      <div className="text-center py-4">
+                        <Loader2 className="animate-spin text-brand-orange mx-auto mb-2" size={28} />
+                        <p className="font-body text-sm font-semibold text-brand-navy">Uploading image...</p>
+                        <p className="font-body text-xs text-brand-muted mt-1">Please wait while the file is uploaded to Hostinger</p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-2">
+                        <div className="w-12 h-12 rounded-full bg-brand-orange/10 flex items-center justify-center mx-auto mb-3">
+                          <Image className="text-brand-orange" size={24} />
+                        </div>
+                        <p className="font-body text-sm font-semibold text-brand-navy">
+                          Click to upload cover image
+                        </p>
+                        <p className="font-body text-xs text-brand-muted mt-1">
+                          Supports JPEG, PNG, WEBP, GIF up to 10MB
+                        </p>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      disabled={uploadingImage}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+
+                {!uploadingImage && (
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUseUrlFallback(true);
+                        setUploadError(null);
+                      }}
+                      className="text-xs text-brand-orange font-body font-semibold hover:underline flex items-center gap-1"
+                    >
+                      <Link size={12} /> Or paste a direct image URL instead
+                    </button>
+                  </div>
+                )}
+                {errors.image && !form.image && <p className="text-xs text-red-500 font-body mt-1">{errors.image}</p>}
+                {uploadError && <p className="text-xs text-red-500 font-body mt-1">{uploadError}</p>}
+              </div>
+            )}
+          </div>
           <Field label="Builder Brochure URL" error={errors.builderDocLink}>
             <input value={form.builderDocLink ?? ''} onChange={e => set('builderDocLink', e.target.value)}
               className={input(false)} placeholder="https://… (optional)" />

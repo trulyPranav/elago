@@ -29,6 +29,8 @@ export interface Property {
   name: string;
   builder: string;
   address: string;
+  locality?: string;
+  city?: string;
   lat: number;
   lng: number;
   type: PropertyType;

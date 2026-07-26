@@ -341,6 +341,18 @@ export const api = {
     };
   },
 
+  /** Upload property image */
+  uploadImage: async (file: File): Promise<{ url: string }> => {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const res = await apiFetch<{ url: string }>('/api/properties/upload-image', {
+      method: 'POST',
+      body: formData,
+    });
+    return res.data;
+  },
+
   /** AI-driven property/rent projection chart */
   getPropertyChart: async (
     id: string,
