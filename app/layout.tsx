@@ -5,9 +5,9 @@ export const metadata: Metadata = {
   title: 'elaGO — Premium Real Estate Discovery',
   description: 'Map-first real estate platform for Bangalore',
   icons: {
-    icon: '/elago_logo.jpeg',
-    shortcut: '/elago_logo.jpeg',
-    apple: '/elago_logo.jpeg',
+    icon: '/elago-logo.png',
+    shortcut: '/elago-logo.png',
+    apple: '/elago-logo.png',
   },
 }
 
