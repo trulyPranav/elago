@@ -13,7 +13,7 @@ export default function ElagoLogo({ className = '', size = 'md' }: ElagoLogoProp
 
   return (
     <Image
-      src="/elago-logo.png"
+      src="/elago-logo.jpeg"
       alt="elaGO"
       width={width}
       height={height}
